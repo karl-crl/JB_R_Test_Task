@@ -56,6 +56,7 @@ class TestGrammar {
 
     @Test
     fun testParser() {
+        CallChainParser.simplify = false
         var expression = "filter{(element>10)}%>%filter{(element<20)}"
         var expected = "filter{((element>10)&(element<20))}%>%map{element}"
         assertEquals(expected, CallChainParser.rewriteCallChain(expression))
@@ -67,6 +68,35 @@ class TestGrammar {
         assertEquals(expected, CallChainParser.rewriteCallChain(expression))
         expression = "map{(element+10)}%>%filter{(element>10)}%>%map{(element-30)}%>%filter{((element*element)<100)}"
         expected = "filter{(((element+10)>10)&((((element+10)-30)*((element+10)-30))<100))}%>%map{((element+10)-30)}"
+        assertEquals(expected, CallChainParser.rewriteCallChain(expression))
+    }
+
+    @Test
+    fun testSimplifyConstExpression() {
+        assertEquals("4", simplifyBinaryConstExpression(stringToBinaryExpression("2+2")).toString())
+        assertEquals("4", simplifyBinaryConstExpression(stringToBinaryExpression("8-4")).toString())
+        assertEquals("4", simplifyBinaryConstExpression(stringToBinaryExpression("-4+8")).toString())
+        assertEquals("4", simplifyBinaryConstExpression(stringToBinaryExpression("8-4")).toString())
+        assertEquals("4", simplifyBinaryConstExpression(stringToBinaryExpression("2*2")).toString())
+        assertEquals("4", simplifyBinaryConstExpression(stringToBinaryExpression("-2*-2")).toString())
+        assertEquals("22", simplifyBinaryConstExpression(stringToBinaryExpression("20+2")).toString())
+        assertEquals("22", simplifyBinaryConstExpression(stringToBinaryExpression("2+20")).toString())
+    }
+
+    @Test
+    fun testSimplifyParser() {
+        CallChainParser.simplify = true
+        var expression = "filter{(element>10)}%>%filter{(element<20)}"
+        var expected = "filter{((element>10)&(element<20))}%>%map{element}"
+        assertEquals(expected, CallChainParser.rewriteCallChain(expression))
+        expression = "map{(element+10)}%>%filter{(element>10)}%>%map{(element*element)}"
+        expected = "filter{((element+10)>10)}%>%map{((element+10)*(element+10))}"
+        assertEquals(expected, CallChainParser.rewriteCallChain(expression))
+        expression = "map{(element+10)}%>%filter{(element>10)}%>%map{(element*(element+20))}"
+        expected = "filter{((element+10)>10)}%>%map{((element+10)*(element+30))}"
+        assertEquals(expected, CallChainParser.rewriteCallChain(expression))
+        expression = "map{(element+10)}%>%filter{(element>10)}%>%map{(element-30)}%>%filter{((element*element)<100)}"
+        expected = "filter{(((element+10)>10)&(((element-20)*(element-20))<100))}%>%map{(element-20)}"
         assertEquals(expected, CallChainParser.rewriteCallChain(expression))
     }
 }

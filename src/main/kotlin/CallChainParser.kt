@@ -4,6 +4,7 @@
 class CallChainParser {
     companion object {
         val pipeSymb: String = "%>%"
+        var simplify = false
 
         fun split(callChain: String): List<String> {
             return callChain.split(pipeSymb)
@@ -29,10 +30,25 @@ class CallChainParser {
                 for (i in 1 until filterCalls.size) {
                     filterExpr = BinaryExpression(Operation('&'), filterExpr, filterCalls[i])
                 }
-                filter = filterExpr.toString()
+                filter = if (simplify) {
+                    when(filterExpr) {
+                        is BinaryExpression -> simplify2(filterExpr).toString()
+                        else -> filterExpr.toString()
+                    }
+                } else {
+                    filterExpr.toString()
+                }
+            }
+            val map = if (simplify) {
+                when (currentState) {
+                    is BinaryExpression -> simplify2(currentState as BinaryExpression).toString()
+                    else -> currentState.toString()
+                }
+            } else {
+                currentState.toString()
             }
 
-            return "filter{$filter}%>%map{${currentState.toString()}}"
+            return "filter{$filter}%>%map{${map}}"
         }
     }
 }
